@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+
+// node-fetch dynamic import (biar compatible Node 22)
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
@@ -7,19 +9,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ROOT
 app.get("/", (req, res) => {
   res.send("Solana backend online 🚀");
 });
 
-// REAL SCAN
+// =======================
+// REAL TOKEN SCAN
+// =======================
 app.get("/scan/:address", async (req, res) => {
   try {
     const address = req.params.address;
 
-    // DexScreener
     const dex = await fetch(
       `https://api.dexscreener.com/latest/dex/tokens/${address}`
     );
+
     const dexData = await dex.json();
 
     if (!dexData.pairs || dexData.pairs.length === 0) {
@@ -29,32 +34,60 @@ app.get("/scan/:address", async (req, res) => {
     const pair = dexData.pairs[0];
 
     const liquidity = pair.liquidity?.usd || 0;
-    const holders = pair.txns?.h24?.buys + pair.txns?.h24?.sells || 0;
 
-    // simple risk algo
+    // SIMPLE RISK ENGINE
     let risk = 0;
     if (liquidity < 5000) risk += 40;
-    if (pair.fdv < 100000) risk += 30;
-    if (pair.priceChange?.h1 < -20) risk += 30;
+    if ((pair.fdv || 0) < 100000) risk += 30;
+    if ((pair.priceChange?.h1 || 0) < -20) risk += 30;
 
     res.json({
       token: address,
       name: pair.baseToken.name,
       symbol: pair.baseToken.symbol,
       liquidity: Math.floor(liquidity),
-      fdv: Math.floor(pair.fdv),
+      fdv: Math.floor(pair.fdv || 0),
       priceUsd: pair.priceUsd,
-      volume24h: pair.volume.h24,
+      volume24h: pair.volume?.h24 || 0,
       dex: pair.dexId,
       risk,
       status: risk > 60 ? "HIGH RISK" : "SAFE"
     });
-  } catch (err) {
+  } catch (e) {
     res.json({ error: "scan failed" });
   }
 });
 
-// Railway port
+// =======================
+// LIVE NEW PAIRS (SOLANA)
+// =======================
+app.get("/newpairs", async (req, res) => {
+  try {
+    const r = await fetch(
+      "https://api.dexscreener.com/latest/dex/pairs/solana"
+    );
+
+    const d = await r.json();
+
+    const list = d.pairs.slice(0, 20).map(p => ({
+      token: p.baseToken.address,
+      name: p.baseToken.name,
+      symbol: p.baseToken.symbol,
+      liquidity: Math.floor(p.liquidity?.usd || 0),
+      fdv: Math.floor(p.fdv || 0),
+      dex: p.dexId,
+      created: p.pairCreatedAt
+    }));
+
+    res.json(list);
+  } catch {
+    res.json([]);
+  }
+});
+
+// =======================
+// RAILWAY PORT (HARDCODE)
+// =======================
 app.listen(3001, () => {
   console.log("Server running on 3001");
 });
