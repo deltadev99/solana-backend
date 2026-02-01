@@ -1,36 +1,40 @@
 const express = require("express");
-const cors = require("cors");
+const fetch = require("node-fetch");
 
 const app = express();
-
-app.use(cors());
 app.use(express.json());
 
-// TEST ROOT
+// root test
 app.get("/", (req, res) => {
   res.send("Solana backend online 🚀");
 });
 
-// SCAN WALLET
+// scan token endpoint
 app.get("/scan/:address", async (req, res) => {
-  const address = req.params.address;
+  try {
+    const address = req.params.address;
 
-  if (!address) {
-    return res.status(400).json({ error: "No address provided" });
+    // contoh dummy data dulu (nanti bisa upgrade API asli)
+    const result = {
+      token: address,
+      liquidity: Math.floor(Math.random() * 50000),
+      holders: Math.floor(Math.random() * 3000),
+      dev: (Math.random() * 5).toFixed(2) + "%",
+      mint: Math.random() > 0.5 ? "YES" : "NO",
+      freeze: Math.random() > 0.5 ? "YES" : "NO",
+      risk: Math.floor(Math.random() * 100),
+      status: "SAFE"
+    };
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  // sementara dummy dulu
-  res.json({
-    wallet: address,
-    profit: Math.floor(Math.random() * 1000),
-    trades: Math.floor(Math.random() * 50),
-    status: "ok"
-  });
 });
 
-// IMPORTANT FOR RAILWAY
-const PORT = process.env.PORT || 3001;
+// IMPORTANT: Railway PORT
+const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("Server running on", PORT);
+app.listen(PORT, () => {
+  console.log("Server running on " + PORT);
 });
