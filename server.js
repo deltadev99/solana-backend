@@ -3,20 +3,24 @@ const cors = require("cors");
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
-app.get("/scan/:token", async (req, res) => {
+app.get("/scan/:address", async (req, res) => {
+  const address = req.params.address;
 
   res.json({
-    liquidity: Math.floor(Math.random() * 60000),
-    holders: Math.floor(Math.random() * 4000),
-    dev: (Math.random() * 6).toFixed(2),
-    mint: Math.random() > 0.5,
-    freeze: Math.random() > 0.5,
-    risk: Math.floor(Math.random() * 100),
+    token: address,
+    liquidity: 26690,
+    holders: 1800,
+    dev: 0.23,
+    mint: "YES",
+    freeze: "NO",
+    risk: "23 (SAFE)"
   });
-
 });
 
-app.listen(3001, () => {
-  console.log("Backend running on port 3001");
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
 });
