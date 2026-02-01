@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 
-// dynamic fetch (Node 22 compatible)
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
@@ -9,12 +8,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ================= ROOT =================
+// ROOT
 app.get("/", (req, res) => {
   res.send("Solana backend online 🚀");
 });
 
-// ================= REAL TOKEN SCAN =================
+// SCAN TOKEN
 app.get("/scan/:address", async (req, res) => {
   try {
     const address = req.params.address;
@@ -49,12 +48,12 @@ app.get("/scan/:address", async (req, res) => {
       risk,
       status: risk > 60 ? "HIGH RISK" : "SAFE"
     });
-  } catch {
+  } catch (err) {
     res.json({ error: "scan failed" });
   }
 });
 
-// ================= LIVE NEW PAIRS (STABLE) =================
+// LIVE NEW PAIRS
 app.get("/newpairs", async (req, res) => {
   try {
     const r = await fetch(
@@ -72,4 +71,19 @@ app.get("/newpairs", async (req, res) => {
         token: p.baseToken.address,
         name: p.baseToken.name,
         symbol: p.baseToken.symbol,
-        liquidity: Math.floo
+        liquidity: Math.floor(p.liquidity?.usd || 0),
+        fdv: Math.floor(p.fdv || 0),
+        dex: p.dexId,
+        created: p.pairCreatedAt
+      }));
+
+    res.json(list);
+  } catch (err) {
+    res.json([]);
+  }
+});
+
+// START SERVER
+app.listen(3001, () => {
+  console.log("Server running on 3001");
+});
