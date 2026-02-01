@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
-// node-fetch dynamic import (biar compatible Node 22)
+// dynamic fetch (Node 22 compatible)
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
@@ -9,14 +9,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ROOT
+// ================= ROOT =================
 app.get("/", (req, res) => {
   res.send("Solana backend online 🚀");
 });
 
-// =======================
-// REAL TOKEN SCAN
-// =======================
+// ================= REAL TOKEN SCAN =================
 app.get("/scan/:address", async (req, res) => {
   try {
     const address = req.params.address;
@@ -32,10 +30,8 @@ app.get("/scan/:address", async (req, res) => {
     }
 
     const pair = dexData.pairs[0];
-
     const liquidity = pair.liquidity?.usd || 0;
 
-    // SIMPLE RISK ENGINE
     let risk = 0;
     if (liquidity < 5000) risk += 40;
     if ((pair.fdv || 0) < 100000) risk += 30;
@@ -53,41 +49,27 @@ app.get("/scan/:address", async (req, res) => {
       risk,
       status: risk > 60 ? "HIGH RISK" : "SAFE"
     });
-  } catch (e) {
+  } catch {
     res.json({ error: "scan failed" });
   }
 });
 
-// =======================
-// LIVE NEW PAIRS (SOLANA)
-// =======================
+// ================= LIVE NEW PAIRS (STABLE) =================
 app.get("/newpairs", async (req, res) => {
   try {
     const r = await fetch(
-      "https://api.dexscreener.com/latest/dex/pairs/solana"
+      "https://api.dexscreener.com/latest/dex/search/?q=SOL"
     );
 
     const d = await r.json();
 
-    const list = d.pairs.slice(0, 20).map(p => ({
-      token: p.baseToken.address,
-      name: p.baseToken.name,
-      symbol: p.baseToken.symbol,
-      liquidity: Math.floor(p.liquidity?.usd || 0),
-      fdv: Math.floor(p.fdv || 0),
-      dex: p.dexId,
-      created: p.pairCreatedAt
-    }));
+    if (!d.pairs) return res.json([]);
 
-    res.json(list);
-  } catch {
-    res.json([]);
-  }
-});
-
-// =======================
-// RAILWAY PORT (HARDCODE)
-// =======================
-app.listen(3001, () => {
-  console.log("Server running on 3001");
-});
+    const list = d.pairs
+      .filter(p => p.chainId === "solana")
+      .slice(0, 20)
+      .map(p => ({
+        token: p.baseToken.address,
+        name: p.baseToken.name,
+        symbol: p.baseToken.symbol,
+        liquidity: Math.floo
