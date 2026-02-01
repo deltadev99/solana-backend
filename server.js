@@ -7,25 +7,23 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req,res)=>{
-  res.send("Solana backend running");
+  res.send("Backend OK");
 });
 
-app.get("/scan/:address", (req, res) => {
-  const address = req.params.address;
-
+app.get("/scan/:address", (req,res)=>{
   res.json({
-    token: address,
-    liquidity: 26690,
-    holders: 1800,
-    dev: 0.23,
-    mint: "YES",
-    freeze: "NO",
-    risk: "23 (SAFE)"
+    token:req.params.address,
+    liquidity:26690,
+    holders:1800,
+    dev:0.23,
+    mint:"YES",
+    freeze:"NO",
+    risk:"23 SAFE"
   });
 });
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("Server running on", PORT);
+app.listen(PORT, "0.0.0.0", ()=>{
+  console.log("running on",PORT);
 });
