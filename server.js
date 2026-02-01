@@ -2,10 +2,15 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-app.get("/scan/:address", async (req, res) => {
+app.get("/", (req,res)=>{
+  res.send("Solana backend running");
+});
+
+app.get("/scan/:address", (req, res) => {
   const address = req.params.address;
 
   res.json({
@@ -19,8 +24,8 @@ app.get("/scan/:address", async (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
 
-app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("Server running on", PORT);
 });
