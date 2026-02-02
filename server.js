@@ -8,33 +8,33 @@ app.use(express.json());
 
 let PAIRS = [];
 
-app.get("/", (req,res)=>{
-  res.send("SOLANA BACKEND OK");
+// health check
+app.get("/", (req, res) => {
+  res.send("SOLANA BACKEND OK 🚀");
 });
 
-// NEW PAIRS ENDPOINT
-app.get("/new-pairs",(req,res)=>{
+// API new pairs
+app.get("/new-pairs", (req, res) => {
   res.json(PAIRS);
 });
 
-// MOCK GENERATOR (sementara)
-setInterval(()=>{
+// dummy generator (biar frontend pasti isi)
+setInterval(() => {
   PAIRS.unshift({
-    token: Math.random().toString(36).substring(2),
-    name: "MEME-" + Math.floor(Math.random()*9999),
+    token: Math.random().toString(36).slice(2),
+    name: "MEME-" + Math.floor(Math.random() * 9999),
     symbol: "SOL",
-    liquidity: Math.floor(Math.random()*50000),
-    fdv: Math.floor(Math.random()*100000),
+    liquidity: Math.floor(Math.random() * 100000),
+    fdv: Math.floor(Math.random() * 500000),
     dex: "pump",
-    created: Date.now()
+    created: Date.now(),
   });
 
-  if(PAIRS.length > 30) PAIRS.pop();
-
-},5000);
+  if (PAIRS.length > 25) PAIRS.pop();
+}, 4000);
 
 const PORT = process.env.PORT || 8080;
 
-app.listen(PORT,()=>{
-  console.log("Listening on",PORT);
+app.listen(PORT, () => {
+  console.log("Listening on", PORT);
 });
