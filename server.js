@@ -2,30 +2,35 @@ const express = require("express");
 const cors = require("cors");
 const fetch = (...a)=>import("node-fetch").then(({default:f})=>f(...a));
 
-console.log("🚀 JUPITER SERVER");
+console.log("🚀 BIRDEYE SERVER");
 
 const app = express();
 app.use(cors());
 
-app.get("/new-pairs",async(req,res)=>{
+const KEY = "public";
+
+app.get("/new-pairs", async (req,res)=>{
 
 try{
 
-const r = await fetch("https://token.jup.ag/all");
-const list = await r.json();
+const r = await fetch(
+"https://public-api.birdeye.so/public/new_tokens?chain=solana&limit=25",
+{
+headers:{
+"X-API-KEY":KEY
+}
+});
 
-const now = Date.now();
+const j = await r.json();
 
-const out = Object.values(list)
-.slice(0,30)
-.map(t=>({
+const out = (j.data||[]).map(t=>({
 token:t.address,
 name:t.name,
 symbol:t.symbol,
-liquidity:0,
-fdv:0,
-dex:"jupiter",
-created:now
+liquidity:t.liquidity||0,
+fdv:t.marketCap||0,
+dex:"birdeye",
+created:Date.now()
 }));
 
 res.json(out);
@@ -37,7 +42,7 @@ res.json([{error:e.toString()}]);
 });
 
 app.get("/",(req,res)=>{
-res.send("Jupiter backend OK");
+res.send("Birdeye backend OK");
 });
 
 const PORT = process.env.PORT || 8080;
