@@ -7,30 +7,30 @@ console.log("🚀 REAL SERVER LOADED");
 const app = express();
 app.use(cors());
 
+// NEW SOLANA PAIRS
 app.get("/new-pairs", async (req,res)=>{
 
 try{
 
-const r = await fetch("https://api.dexscreener.com/latest/dex/search/?q=pump.fun");
+const r = await fetch("https://api.dexscreener.com/latest/dex/pairs/solana");
 const j = await r.json();
 
-const pairs = (j.pairs || []).slice(0,25).map(p=>{
+const out = (j.pairs || [])
+.filter(p=>p.liquidity?.usd>2000)
+.slice(0,30)
+.map(p=>({
 
-const addr = p.baseToken?.address || "";
-
-return {
-token: addr,
-name: p.baseToken?.name || p.baseToken?.symbol || addr.slice(0,6),
-symbol: p.baseToken?.symbol || "",
-liquidity: Math.floor(p.liquidity?.usd || 0),
-fdv: Math.floor(p.fdv || 0),
+token: p.baseToken.address,
+name: p.baseToken.name || p.baseToken.symbol || "UNKNOWN",
+symbol: p.baseToken.symbol || "",
+liquidity: Math.floor(p.liquidity.usd),
+fdv: Math.floor(p.fdv||0),
 dex: p.dexId,
-created: Date.now()
-};
+created: p.pairCreatedAt || Date.now()
 
-});
+}));
 
-res.json(pairs);
+res.json(out);
 
 }catch(e){
 res.json([{error:e.toString()}]);
@@ -39,7 +39,7 @@ res.json([{error:e.toString()}]);
 });
 
 app.get("/",(req,res)=>{
-res.send("REAL Solana backend OK");
+res.send("Solana NewPairs backend OK");
 });
 
 const PORT = process.env.PORT || 8080;
