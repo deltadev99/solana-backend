@@ -2,38 +2,30 @@ const express = require("express");
 const cors = require("cors");
 const fetch = (...a)=>import("node-fetch").then(({default:f})=>f(...a));
 
-console.log("🚀 REAL SERVER LOADED");
+console.log("🚀 JUPITER SERVER");
 
 const app = express();
 app.use(cors());
 
-app.get("/new-pairs", async (req,res)=>{
+app.get("/new-pairs",async(req,res)=>{
 
 try{
 
-const r = await fetch("https://api.dexscreener.com/latest/dex/pairs/solana",{
-headers:{
-"user-agent":"Mozilla/5.0"
-}
-});
+const r = await fetch("https://token.jup.ag/all");
+const list = await r.json();
 
-const text = await r.text();
+const now = Date.now();
 
-if(text.startsWith("<")) return res.json([]);
-
-const j = JSON.parse(text);
-
-const out = (j.pairs||[])
-.filter(p=>p.liquidity?.usd>2000)
+const out = Object.values(list)
 .slice(0,30)
-.map(p=>({
-token:p.baseToken.address,
-name:p.baseToken.name||p.baseToken.symbol||"UNKNOWN",
-symbol:p.baseToken.symbol||"",
-liquidity:Math.floor(p.liquidity.usd),
-fdv:Math.floor(p.fdv||0),
-dex:p.dexId,
-created:p.pairCreatedAt||Date.now()
+.map(t=>({
+token:t.address,
+name:t.name,
+symbol:t.symbol,
+liquidity:0,
+fdv:0,
+dex:"jupiter",
+created:now
 }));
 
 res.json(out);
@@ -45,7 +37,7 @@ res.json([{error:e.toString()}]);
 });
 
 app.get("/",(req,res)=>{
-res.send("Solana backend OK");
+res.send("Jupiter backend OK");
 });
 
 const PORT = process.env.PORT || 8080;
