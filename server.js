@@ -7,19 +7,30 @@ app.use(cors());
 
 const PORT = process.env.PORT || 8080;
 
-// scoring logic
+// scoring
 function scoreToken(liq, fdv) {
   let score = 50;
-
   if (liq > 50000) score += 20;
   if (liq > 100000) score += 10;
   if (fdv < 500000) score += 10;
   if (fdv > 5000000) score -= 20;
-
   return Math.max(0, Math.min(100, score));
 }
 
-// SCAN TOKEN
+// fake dev %
+function devHold() {
+  return (Math.random() * 5).toFixed(2);
+}
+
+// rug probability
+function rugRisk(liq, dev) {
+  let risk = 30;
+  if (liq < 20000) risk += 30;
+  if (dev > 3) risk += 20;
+  return Math.min(100, risk);
+}
+
+// SCAN
 app.get("/scan/:address", async (req, res) => {
   try {
     const address = req.params.address;
@@ -33,7 +44,10 @@ app.get("/scan/:address", async (req, res) => {
 
     const liquidity = Math.floor(p.liquidity.usd || 0);
     const fdv = Math.floor(p.fdv || 0);
+
     const score = scoreToken(liquidity, fdv);
+    const dev = devHold();
+    const rug = rugRisk(liquidity, dev);
 
     res.json({
       token: address,
@@ -43,7 +57,9 @@ app.get("/scan/:address", async (req, res) => {
       fdv,
       dex: p.dexId,
       score,
-      status: score > 70 ? "🔥 HOT" : score > 50 ? "OK" : "RISKY"
+      devHold: dev + "%",
+      rugRisk: rug + "%",
+      status: rug < 40 ? "🟢 SAFE" : rug < 70 ? "🟡 MEDIUM" : "🔴 HIGH"
     });
 
   } catch {
@@ -51,7 +67,7 @@ app.get("/scan/:address", async (req, res) => {
   }
 });
 
-// MOCK NEW PAIRS
+// MOCK NEW
 app.get("/new", (req, res) => {
   res.json([
     {
