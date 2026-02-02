@@ -1,48 +1,67 @@
 const express = require("express");
 const cors = require("cors");
-const fetch = (...a)=>import("node-fetch").then(({default:f})=>f(...a));
 
-console.log("🚀 BIRDEYE SERVER");
+console.log("🚀 STABLE SNIPER BACKEND");
 
 const app = express();
 app.use(cors());
 
-const KEY = "public";
+// ================= MOCK GENERATOR =================
 
-app.get("/new-pairs", async (req,res)=>{
+let PAIRS = [];
 
-try{
+function generatePairs() {
+  PAIRS = [];
 
-const r = await fetch(
-"https://public-api.birdeye.so/public/new_tokens?chain=solana&limit=25",
-{
-headers:{
-"X-API-KEY":KEY
-}
-});
-
-const j = await r.json();
-
-const out = (j.data||[]).map(t=>({
-token:t.address,
-name:t.name,
-symbol:t.symbol,
-liquidity:t.liquidity||0,
-fdv:t.marketCap||0,
-dex:"birdeye",
-created:Date.now()
-}));
-
-res.json(out);
-
-}catch(e){
-res.json([{error:e.toString()}]);
+  for (let i = 0; i < 40; i++) {
+    PAIRS.push({
+      token: Math.random().toString(36).slice(2),
+      name: "MEME-" + Math.floor(Math.random() * 9999),
+      symbol: "SOL",
+      liquidity: Math.floor(Math.random() * 150000),
+      fdv: Math.floor(Math.random() * 500000),
+      dev: Math.random().toFixed(2), // %
+      created: Date.now() - Math.floor(Math.random() * 10 * 60 * 1000) // last 10 min
+    });
+  }
 }
 
+// refresh every 5 seconds
+generatePairs();
+setInterval(generatePairs, 5000);
+
+// ================= FILTER ENGINE =================
+
+app.get("/new-pairs", (req, res) => {
+
+  let {
+    minLiquidity = 0,
+    maxFDV = 999999999,
+    maxAge = 999999,
+    maxDev = 1
+  } = req.query;
+
+  minLiquidity = Number(minLiquidity);
+  maxFDV = Number(maxFDV);
+  maxAge = Number(maxAge) * 60 * 1000; // minutes
+  maxDev = Number(maxDev);
+
+  const now = Date.now();
+
+  const filtered = PAIRS.filter(p =>
+    p.liquidity >= minLiquidity &&
+    p.fdv <= maxFDV &&
+    (now - p.created) <= maxAge &&
+    Number(p.dev) <= maxDev
+  );
+
+  res.json(filtered);
 });
 
-app.get("/",(req,res)=>{
-res.send("Birdeye backend OK");
+// ================= ROOT =================
+
+app.get("/", (req,res)=>{
+  res.send("🔥 Stable Sniper Backend OK");
 });
 
 const PORT = process.env.PORT || 8080;
