@@ -1,68 +1,50 @@
 const express = require("express");
 const cors = require("cors");
 
-console.log("🚀 STABLE SNIPER BACKEND");
-
 const app = express();
 app.use(cors());
 
-// ================= MOCK GENERATOR =================
+console.log("🔥 SNIPER BACKEND RUNNING");
 
-let PAIRS = [];
-
-function generatePairs() {
-  PAIRS = [];
-
-  for (let i = 0; i < 40; i++) {
-    PAIRS.push({
-      token: Math.random().toString(36).slice(2),
-      name: "MEME-" + Math.floor(Math.random() * 9999),
-      symbol: "SOL",
-      liquidity: Math.floor(Math.random() * 150000),
-      fdv: Math.floor(Math.random() * 500000),
-      dev: Math.random().toFixed(2), // %
-      created: Date.now() - Math.floor(Math.random() * 10 * 60 * 1000) // last 10 min
-    });
-  }
+function randomPair(){
+return{
+token:Math.random().toString(36).slice(2),
+name:"MEME-"+Math.floor(Math.random()*9999),
+symbol:"SOL",
+liquidity:Math.floor(Math.random()*150000),
+fdv:Math.floor(Math.random()*500000),
+dev:(Math.random()*0.8).toFixed(2),
+created:Date.now()
+};
 }
 
-// refresh every 5 seconds
-generatePairs();
-setInterval(generatePairs, 5000);
+let PAIRS=[];
 
-// ================= FILTER ENGINE =================
+setInterval(()=>{
+PAIRS=[];
+for(let i=0;i<30;i++) PAIRS.push(randomPair());
+},4000);
 
-app.get("/new-pairs", (req, res) => {
-
-  let {
-    minLiquidity = 0,
-    maxFDV = 999999999,
-    maxAge = 999999,
-    maxDev = 1
-  } = req.query;
-
-  minLiquidity = Number(minLiquidity);
-  maxFDV = Number(maxFDV);
-  maxAge = Number(maxAge) * 60 * 1000; // minutes
-  maxDev = Number(maxDev);
-
-  const now = Date.now();
-
-  const filtered = PAIRS.filter(p =>
-    p.liquidity >= minLiquidity &&
-    p.fdv <= maxFDV &&
-    (now - p.created) <= maxAge &&
-    Number(p.dev) <= maxDev
-  );
-
-  res.json(filtered);
+app.get("/new-pairs",(req,res)=>{
+res.json(PAIRS);
 });
 
-// ================= ROOT =================
-
-app.get("/", (req,res)=>{
-  res.send("🔥 Stable Sniper Backend OK");
+app.get("/scan",(req,res)=>{
+const t=req.query.token||"";
+res.json({
+token:t,
+name:"SCANNED-"+t.slice(0,5),
+symbol:"SOL",
+liquidity:Math.floor(Math.random()*100000),
+fdv:Math.floor(Math.random()*300000),
+dev:(Math.random()*0.6).toFixed(2),
+risk:Math.floor(Math.random()*30)
+});
 });
 
-const PORT = process.env.PORT || 8080;
+app.get("/",(req,res)=>{
+res.send("🔥 SNIPER BACKEND OK");
+});
+
+const PORT=process.env.PORT||8080;
 app.listen(PORT,()=>console.log("Listening",PORT));
