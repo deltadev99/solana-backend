@@ -1,89 +1,41 @@
 const express = require("express");
 const cors = require("cors");
 
-const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args));
-
 const app = express();
 app.use(cors());
-app.use(express.json());
 
-// ROOT
+const PORT = process.env.PORT || 8080;
+
 app.get("/", (req, res) => {
-  res.send("Solana backend online 🚀");
+  res.send("Solana Backend Alive");
 });
 
-// SCAN TOKEN
 app.get("/scan/:address", async (req, res) => {
   try {
-    const address = req.params.address;
+    const token = req.params.address;
 
-    const dex = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${address}`
-    );
+    // dummy scanner (replace later with GMGN / Birdeye API)
+    const result = {
+      token,
+      name: "ELEMENTARDIO",
+      symbol: "AUTARDIO",
+      liquidity: 61817,
+      fdv: 500112,
+      priceUsd: "0.0005001",
+      volume24h: 907431,
+      dex: "pumpswap",
+      risk: 0,
+      status: "SAFE"
+    };
 
-    const dexData = await dex.json();
+    res.json(result);
 
-    if (!dexData.pairs || dexData.pairs.length === 0) {
-      return res.json({ error: "Token not found" });
-    }
-
-    const pair = dexData.pairs[0];
-    const liquidity = pair.liquidity?.usd || 0;
-
-    let risk = 0;
-    if (liquidity < 5000) risk += 40;
-    if ((pair.fdv || 0) < 100000) risk += 30;
-    if ((pair.priceChange?.h1 || 0) < -20) risk += 30;
-
-    res.json({
-      token: address,
-      name: pair.baseToken.name,
-      symbol: pair.baseToken.symbol,
-      liquidity: Math.floor(liquidity),
-      fdv: Math.floor(pair.fdv || 0),
-      priceUsd: pair.priceUsd,
-      volume24h: pair.volume?.h24 || 0,
-      dex: pair.dexId,
-      risk,
-      status: risk > 60 ? "HIGH RISK" : "SAFE"
-    });
   } catch (err) {
-    res.json({ error: "scan failed" });
+    console.error(err);
+    res.status(500).json({ error: "scan failed" });
   }
 });
 
-// LIVE NEW PAIRS
-app.get("/newpairs", async (req, res) => {
-  try {
-    const r = await fetch(
-      "https://api.dexscreener.com/latest/dex/search/?q=SOL"
-    );
-
-    const d = await r.json();
-
-    if (!d.pairs) return res.json([]);
-
-    const list = d.pairs
-      .filter(p => p.chainId === "solana")
-      .slice(0, 20)
-      .map(p => ({
-        token: p.baseToken.address,
-        name: p.baseToken.name,
-        symbol: p.baseToken.symbol,
-        liquidity: Math.floor(p.liquidity?.usd || 0),
-        fdv: Math.floor(p.fdv || 0),
-        dex: p.dexId,
-        created: p.pairCreatedAt
-      }));
-
-    res.json(list);
-  } catch (err) {
-    res.json([]);
-  }
-});
-
-// START SERVER
-app.listen(3001, () => {
-  console.log("Server running on 3001");
+app.listen(PORT, () => {
+  console.log("Server running on", PORT);
 });
