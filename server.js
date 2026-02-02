@@ -7,9 +7,6 @@ app.use(cors());
 
 const PORT = process.env.PORT || 8080;
 
-// GANTI DENGAN API KEY KAMU
-const HELIUS = "PASTE_API_KEY_KAMU";
-
 app.get("/scan/:address", async (req, res) => {
   try {
     const address = req.params.address;
@@ -37,17 +34,20 @@ app.get("/scan/:address", async (req, res) => {
   }
 });
 
-// REAL SOLANA NEW TOKENS
+// STABLE TOKEN FEED
 app.get("/new", async (req, res) => {
   try {
-    const r = await fetch(`https://api.helius.xyz/v0/tokens?api-key=${HELIUS}`);
+    const r = await fetch("https://token.jup.ag/all");
     const j = await r.json();
 
-    const list = j.slice(0, 20).map(t => ({
-      token: t.mint,
-      symbol: t.symbol || "NEW",
-      liquidity: 0
-    }));
+    const list = j
+      .filter(t => t.chainId === 101)
+      .slice(0, 30)
+      .map(t => ({
+        token: t.address,
+        symbol: t.symbol,
+        liquidity: 0
+      }));
 
     res.json(list);
 
