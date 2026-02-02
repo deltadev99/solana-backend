@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const fetch = (...a)=>import("node-fetch").then(({default:f})=>f(...a));
 
+console.log("🚀 REAL SERVER LOADED");
+
 const app = express();
 app.use(cors());
 
@@ -37,7 +39,7 @@ res.json([{error:e.toString()}]);
 });
 
 app.get("/",(req,res)=>{
-res.send("REAL backend OK");
+res.send("REAL Solana backend OK");
 });
 
 const PORT = process.env.PORT || 8080;
