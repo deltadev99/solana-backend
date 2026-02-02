@@ -9,30 +9,63 @@ const PORT = process.env.PORT || 8080;
 
 let newTokens = [];
 
-const ws = new WebSocket("wss://pumpportal.fun/api/data");
+function connectPump() {
+  console.log("Connecting Pump.fun...");
 
-ws.on("open", () => {
-  ws.send(JSON.stringify({ method: "subscribeNewToken" }));
-});
+  const ws = new WebSocket("wss://pumpportal.fun/api/data");
 
-ws.on("message", msg => {
-  try {
-    const d = JSON.parse(msg.toString());
+  ws.on("open", () => {
+    console.log("Pump WS connected");
 
-    if (d.mint) {
-      newTokens.unshift({
-        token: d.mint,
-        symbol: d.symbol || "NEW",
-        liquidity: d.marketCapSol || 0
-      });
+    ws.send(
+      JSON.stringify({
+        method: "subscribeNewToken"
+      })
+    );
+  });
 
-      newTokens = newTokens.slice(0, 20);
+  ws.on("message", msg => {
+    try {
+      const d = JSON.parse(msg.toString());
+
+      if (d.mint) {
+        newTokens.unshift({
+          token: d.mint,
+          symbol: d.symbol || "NEW",
+          liquidity: d.marketCapSol || 0,
+          time: Date.now()
+        });
+
+        newTokens = newTokens.slice(0, 50);
+
+        console.log("NEW:", d.mint);
+      }
+    } catch (e) {
+      console.log("parse error");
     }
-  } catch {}
+  });
+
+  ws.on("close", () => {
+    console.log("WS closed – reconnecting");
+    setTimeout(connectPump, 3000);
+  });
+
+  ws.on("error", err => {
+    console.log("WS error", err.message);
+    ws.close();
+  });
+}
+
+connectPump();
+
+app.get("/", (req, res) => {
+  res.send("Pump backend alive");
 });
 
 app.get("/newpairs", (req, res) => {
   res.json(newTokens);
 });
 
-app.listen(PORT, () => console.log("Pump.fun live on", PORT));
+app.listen(PORT, () => {
+  console.log("Server listening on", PORT);
+});
