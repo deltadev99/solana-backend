@@ -4,38 +4,31 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3001;
 
 app.get("/", (req, res) => {
-  res.send("Solana Backend Alive");
+  res.send("Solana Backend Alive 🚀");
 });
 
-app.get("/scan/:address", async (req, res) => {
-  try {
-    const token = req.params.address;
+app.get("/scan/:address", (req, res) => {
 
-    // dummy scanner (replace later with GMGN / Birdeye API)
-    const result = {
-      token,
-      name: "ELEMENTARDIO",
-      symbol: "AUTARDIO",
-      liquidity: 61817,
-      fdv: 500112,
-      priceUsd: "0.0005001",
-      volume24h: 907431,
-      dex: "pumpswap",
-      risk: 0,
-      status: "SAFE"
-    };
+  const token = req.params.address;
 
-    res.json(result);
+  res.json({
+    token,
+    name: "ELEMENTARDIO",
+    symbol: "AUTARDIO",
+    liquidity: 61817,
+    fdv: 500112,
+    priceUsd: "0.0005001",
+    volume24h: 907431,
+    dex: "pumpswap",
+    risk: 0,
+    status: "SAFE"
+  });
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "scan failed" });
-  }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("Server running on", PORT);
 });
