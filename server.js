@@ -1,19 +1,25 @@
 const express = require("express");
 const cors = require("cors");
 const fetch = require("node-fetch");
-const crypto = require("crypto");
 
 const app = express();
 app.use(cors());
 
 const PORT = process.env.PORT || 8080;
 
-// random sol address generator
-function randomAddress() {
-  return crypto.randomBytes(32).toString("hex");
+// scoring logic
+function scoreToken(liq, fdv) {
+  let score = 50;
+
+  if (liq > 50000) score += 20;
+  if (liq > 100000) score += 10;
+  if (fdv < 500000) score += 10;
+  if (fdv > 5000000) score -= 20;
+
+  return Math.max(0, Math.min(100, score));
 }
 
-// REAL SCAN
+// SCAN TOKEN
 app.get("/scan/:address", async (req, res) => {
   try {
     const address = req.params.address;
@@ -25,15 +31,19 @@ app.get("/scan/:address", async (req, res) => {
 
     const p = j.pairs[0];
 
+    const liquidity = Math.floor(p.liquidity.usd || 0);
+    const fdv = Math.floor(p.fdv || 0);
+    const score = scoreToken(liquidity, fdv);
+
     res.json({
       token: address,
       name: p.baseToken.name,
       symbol: p.baseToken.symbol,
-      liquidity: Math.floor(p.liquidity.usd || 0),
-      fdv: Math.floor(p.fdv || 0),
+      liquidity,
+      fdv,
       dex: p.dexId,
-      risk: p.liquidity.usd < 20000 ? 80 : 10,
-      status: p.liquidity.usd < 20000 ? "RISKY" : "SAFE"
+      score,
+      status: score > 70 ? "🔥 HOT" : score > 50 ? "OK" : "RISKY"
     });
 
   } catch {
@@ -41,7 +51,7 @@ app.get("/scan/:address", async (req, res) => {
   }
 });
 
-// ALWAYS RETURN DATA
+// MOCK NEW PAIRS
 app.get("/new", (req, res) => {
   res.json([
     {
