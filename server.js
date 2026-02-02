@@ -1,55 +1,85 @@
 const express = require("express");
 const cors = require("cors");
+
 const fetch = (...a)=>import("node-fetch").then(({default:f})=>f(...a));
 
 const app = express();
 app.use(cors());
 
-let PAIRS = [];
+const RPC = "https://api.mainnet-beta.solana.com";
 
-function randomAddr(){
-  return Math.random().toString(36).slice(2,12);
-}
-
-async function generate(){
-
-  const name = "SOL-MEME-"+Math.floor(Math.random()*9999);
-
-  PAIRS.unshift({
-    token: randomAddr(),
-    name,
-    symbol:"SOL",
-    liquidity: Math.floor(Math.random()*90000)+20000,
-    fdv: Math.floor(Math.random()*500000)+30000,
-    dex:"pump",
-    created: Date.now()
+async function rpc(method,params=[]){
+  const r = await fetch(RPC,{
+    method:"POST",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify({
+      jsonrpc:"2.0",
+      id:1,
+      method,
+      params
+    })
   });
 
-  if(PAIRS.length>25) PAIRS.pop();
+  const j = await r.json();
+  return j.result;
 }
 
-setInterval(generate,2500);
+// scan token
 
-// scan
+app.get("/scan/:mint",async(req,res)=>{
 
-app.get("/scan/:token",async(req,res)=>{
-  res.json({
-    token:req.params.token,
-    name:"UNKNOWN",
-    liquidity:Math.floor(Math.random()*80000),
-    risk:Math.floor(Math.random()*40),
-    status:"SAFE"
-  });
+try{
+
+const mint = req.params.mint;
+
+const acc = await rpc("getAccountInfo",[mint,{encoding:"jsonParsed"}]);
+
+if(!acc) return res.json({error:"not found"});
+
+const supply = await rpc("getTokenSupply",[mint]);
+
+res.json({
+  token:mint,
+  supply:supply?.value?.uiAmount || 0,
+  decimals:supply?.value?.decimals || 0
 });
 
-// pairs
+}catch(e){
+res.json({error:e.toString()});
+}
 
-app.get("/new-pairs",(req,res)=>{
-  res.json(PAIRS);
+});
+
+// REAL NEW PAIRS (pump.fun via dex screener)
+
+app.get("/new-pairs",async(req,res)=>{
+
+try{
+
+const r = await fetch("https://api.dexscreener.com/latest/dex/search/?q=pump");
+
+const j = await r.json();
+
+const out = j.pairs.slice(0,20).map(p=>({
+  token:p.baseToken.address,
+  name:p.baseToken.name,
+  symbol:p.baseToken.symbol,
+  liquidity:Math.floor(p.liquidity?.usd||0),
+  fdv:Math.floor(p.fdv||0),
+  dex:p.dexId,
+  created:Date.now()
+}));
+
+res.json(out);
+
+}catch(e){
+res.json([]);
+}
+
 });
 
 app.get("/",(req,res)=>{
-  res.send("Solana Backend OK 🚀");
+res.send("Solana REAL backend OK");
 });
 
 const PORT = process.env.PORT || 8080;
