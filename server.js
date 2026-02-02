@@ -1,80 +1,38 @@
 const express = require("express");
 const cors = require("cors");
+const WebSocket = require("ws");
 
 const app = express();
+app.use(cors());
+
 const PORT = process.env.PORT || 8080;
 
-app.use(cors());
-app.use(express.json());
+let newTokens = [];
 
-// ===============================
-// NEW PAIRS (REAL SOLANA)
-// ===============================
-app.get("/newpairs", async (req, res) => {
+const ws = new WebSocket("wss://pumpportal.fun/api/data");
+
+ws.on("open", () => {
+  ws.send(JSON.stringify({ method: "subscribeNewToken" }));
+});
+
+ws.on("message", msg => {
   try {
-    const url =
-      "https://api.dexscreener.com/latest/dex/pairs/solana";
+    const d = JSON.parse(msg.toString());
 
-    const r = await fetch(url);
-    const data = await r.json();
+    if (d.mint) {
+      newTokens.unshift({
+        token: d.mint,
+        symbol: d.symbol || "NEW",
+        liquidity: d.marketCapSol || 0
+      });
 
-    if (!data.pairs) return res.json([]);
-
-    const pairs = data.pairs
-      .filter(p => p.liquidity?.usd > 5000)
-      .slice(0, 15)
-      .map(p => ({
-        token: p.baseToken.address,
-        name: p.baseToken.name,
-        symbol: p.baseToken.symbol,
-        liquidity: Math.round(p.liquidity.usd),
-        fdv: Math.round(p.fdv || 0),
-        dex: p.dexId,
-        created: p.pairCreatedAt
-      }));
-
-    res.json(pairs);
-  } catch (e) {
-    console.error(e);
-    res.json([]);
-  }
+      newTokens = newTokens.slice(0, 20);
+    }
+  } catch {}
 });
 
-// ===============================
-// TOKEN SCAN
-// ===============================
-app.get("/scan/:token", async (req, res) => {
-  try {
-    const token = req.params.token;
-
-    const url = `https://api.dexscreener.com/latest/dex/tokens/${token}`;
-
-    const r = await fetch(url);
-    const d = await r.json();
-
-    if (!d.pairs || !d.pairs.length)
-      return res.json({ status: "NOT FOUND" });
-
-    const p = d.pairs[0];
-
-    res.json({
-      token,
-      name: p.baseToken.name,
-      symbol: p.baseToken.symbol,
-      liquidity: Math.round(p.liquidity.usd),
-      fdv: Math.round(p.fdv || 0),
-      priceUsd: p.priceUsd,
-      volume24h: p.volume.h24,
-      dex: p.dexId,
-      risk: p.liquidity.usd < 20000 ? 50 : 10,
-      status: p.liquidity.usd > 20000 ? "SAFE" : "RISKY"
-    });
-  } catch (e) {
-    console.error(e);
-    res.json({ status: "ERROR" });
-  }
+app.get("/newpairs", (req, res) => {
+  res.json(newTokens);
 });
 
-app.listen(PORT, () => {
-  console.log("Listening on " + PORT);
-});
+app.listen(PORT, () => console.log("Pump.fun live on", PORT));
