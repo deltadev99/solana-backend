@@ -7,17 +7,15 @@ app.use(cors());
 
 const PORT = process.env.PORT || 8080;
 
-// ===== SCAN TOKEN =====
+// SCAN TOKEN
 app.get("/scan/:address", async (req, res) => {
   try {
     const address = req.params.address;
 
-    const url = `https://api.dexscreener.com/latest/dex/tokens/${address}`;
-    const r = await fetch(url);
+    const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
     const j = await r.json();
 
-    if (!j.pairs || !j.pairs.length)
-      return res.json({ status: "NOT FOUND" });
+    if (!j.pairs?.length) return res.json({ status: "NOT FOUND" });
 
     const p = j.pairs[0];
 
@@ -32,29 +30,28 @@ app.get("/scan/:address", async (req, res) => {
       status: p.liquidity.usd < 20000 ? "RISKY" : "SAFE"
     });
 
-  } catch (e) {
-    res.json({ error: "scan failed" });
+  } catch {
+    res.json({ status: "ERROR" });
   }
 });
 
-// ===== NEW PAIRS =====
+// REAL SOLANA MEMES (pump.fun)
 app.get("/new", async (req, res) => {
   try {
-    const url = "https://api.dexscreener.com/latest/dex/pairs/solana";
-    const r = await fetch(url);
+    const r = await fetch("https://frontend-api.pump.fun/coins");
     const j = await r.json();
 
-    const list = j.pairs.slice(0, 20).map(p => ({
-      token: p.baseToken.address,
-      symbol: p.baseToken.symbol,
-      liquidity: Math.floor(p.liquidity.usd || 0)
+    const list = j.slice(0, 20).map(c => ({
+      token: c.mint,
+      symbol: c.symbol || "NEW",
+      liquidity: c.usd_market_cap || 0
     }));
 
     res.json(list);
 
-  } catch {
+  } catch (e) {
     res.json([]);
   }
 });
 
-app.listen(PORT, () => console.log("Server running on", PORT));
+app.listen(PORT, () => console.log("Server running", PORT));
